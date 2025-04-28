@@ -39,7 +39,7 @@ func NewGetUserChatsHandler(log *slog.Logger, getUserChats chat_usecase.GetUserC
 		log.Info("Handle request to get chats")
 		userId, err := strconv.ParseInt(chi.URLParam(r, "user_id"), 10, 64)
 		if err != nil {
-			panic("Invalid user_id")
+			
 		}
 		chats := getUserChats.Execute(user.UserId{Value: userId})
 		render.JSON(w, r, chats)

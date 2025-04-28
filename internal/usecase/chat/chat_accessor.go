@@ -6,6 +6,6 @@ import (
 )
 
 type ChatAccessor interface {
-	GetById(id chat.ChatId) chat.Chat 
-	GetByUserId(userId user.UserId) []chat.Chat
+	GetById(id chat.ChatId) (*chat.Chat, error) 
+	GetByUserId(userId user.UserId) ([]*chat.Chat, error)
 }

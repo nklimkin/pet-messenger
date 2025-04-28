@@ -5,5 +5,5 @@ import (
 )
 
 type ChatMessagePersistence interface {
-	Save(message message.ChatMessage)
+	Save(message message.ChatMessage) (*message.ChatMessage, error)
 }

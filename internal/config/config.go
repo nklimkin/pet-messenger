@@ -8,14 +8,23 @@ import (
 )
 
 type Config struct {
-	Env string `yaml:env"`
+	Env string `yaml:"env"`
 	HttpServer `yaml:"http_server"`
+	Datasource `yaml:"datasource"`
 }
 
 type HttpServer struct {
 	Address string `yaml:"address"`
 	Timeout time.Duration `yaml:"timeout"`
 	IdleTimeut time.Duration `yaml:"idle_timeout"`
+}
+
+type Datasource struct {
+	Type string `yaml:"type"`
+	Host string `yaml:"host"`
+	DatabaseName string `yaml:"batabase_name"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 func Load() *Config {
