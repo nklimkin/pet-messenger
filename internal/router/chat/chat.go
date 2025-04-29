@@ -10,27 +10,31 @@ import (
 	"ru.nklimkin/petmsngr/internal/domain/chat"
 	"ru.nklimkin/petmsngr/internal/domain/user"
 	chat_usecase "ru.nklimkin/petmsngr/internal/usecase/chat"
+	"ru.nklimkin/petmsngr/pkg/api/response"
 )
 
-func NewCreateChatHandler(createChat chat_usecase.CreateChat) http.HandlerFunc {
+type NewChatRequest struct {
+	Id int64 `json:"id"`
+	FirstUserId int64 `json:"first_user_id"`
+	SecondUserId int64 `json:"second_user_id"`
+}
+
+func NewCreateChatHandler(log *slog.Logger, createChat chat_usecase.CreateChat) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		chatId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		var request NewChatRequest
+		err := render.DecodeJSON(r.Body, &request)
 		if err != nil {
-			panic("Invalid id")
+			response.JSON(r, w, http.StatusBadRequest, response.Error("invalid request body"))
+			return
 		}
-		firstUserId, err := strconv.ParseInt(chi.URLParam(r, "first_user_id"), 10, 64)
-		if err != nil {
-			panic("Invalid first_user_id")
-		}
-		secondUserId, err := strconv.ParseInt(chi.URLParam(r, "second_user_id"), 10, 64)
-		if err != nil {
-			panic("Invalid first_user_id")
-		}
+		
 		createChat.Execute(
-			chat.ChatId{Value: chatId},
-			user.UserId{Value: firstUserId},
-			user.UserId{Value: secondUserId},
+			chat.ChatId{Value: request.Id},
+			user.UserId{Value: request.FirstUserId},
+			user.UserId{Value: request.SecondUserId},
 		)
+
+		render.JSON(w, r, response.Ok())
 	}
 }
 
@@ -39,9 +43,15 @@ func NewGetUserChatsHandler(log *slog.Logger, getUserChats chat_usecase.GetUserC
 		log.Info("Handle request to get chats")
 		userId, err := strconv.ParseInt(chi.URLParam(r, "user_id"), 10, 64)
 		if err != nil {
-			
+			response.JSON(r, w, http.StatusBadRequest, response.Error("invalid path parameter - user_id"))
+			return
 		}
-		chats := getUserChats.Execute(user.UserId{Value: userId})
+		chats, err := getUserChats.Execute(user.UserId{Value: userId})
+		if err != nil {
+			log.Error("error while get user chats, error: %w", err)
+			response.JSON(r, w, http.StatusInternalServerError, response.Error(err.Error()))
+			return
+		}
 		render.JSON(w, r, chats)
 	}
 }

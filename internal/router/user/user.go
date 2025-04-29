@@ -3,25 +3,33 @@ package user
 import (
 	"log/slog"
 	"net/http"
-	"strconv"
 
+	"github.com/go-chi/render"
 	"ru.nklimkin/petmsngr/internal/usecase/user"
+	"ru.nklimkin/petmsngr/pkg/api/response"
 )
+
+type SignUpRequest struct {
+	Id    int64  `json:"id"`
+	Login string `json:"login"`
+}
 
 func NewSignUp(log *slog.Logger, signUp user.UserSignUp) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Handle request of user sign up")
-		query := r.URL.Query()
-		id, err := strconv.ParseInt(query.Get("id"), 10, 64)
+		var signUpRequest SignUpRequest
+		err := render.DecodeJSON(r.Body, &signUpRequest)
 		if err != nil {
-			panic(err)
+			response.JSON(r, w, http.StatusBadRequest, response.Error("invalid request body"))
+			return
 		}
-		login := query.Get("login")
-		_, err = signUp.Execute(id, login)
+		_, err = signUp.Execute(signUpRequest.Id, signUpRequest.Login)
 		if err != nil {
 			log.Error("Failed to sigup user: %w", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Error"))
+			response.JSON(r, w, http.StatusInternalServerError, response.Error(err.Error()))
+			return
 		}
+
+		render.JSON(w, r, response.Ok())
 	}
 }

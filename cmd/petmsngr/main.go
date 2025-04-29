@@ -86,7 +86,7 @@ func setupChatHandlers(log *slog.Logger, cfg *config.Config, router *chi.Mux) {
 	getChatUsercase := chat_usecase.NewGetUserChats(chatAccessor)
 	createChatUsecase := chat_usecase.NewCreateChat(chatPersistence)
 
-	router.Post("/api/v1/chat", chat.NewCreateChatHandler(createChatUsecase))
+	router.Post("/api/v1/chat", chat.NewCreateChatHandler(log, createChatUsecase))
 	router.Get("/api/v1/chat/user/{user_id}", chat.NewGetUserChatsHandler(log, getChatUsercase))
 }
 

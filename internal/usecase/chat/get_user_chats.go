@@ -6,5 +6,5 @@ import (
 )
 
 type GetUserChats interface{
-	Execute(userId user.UserId) []chat.Chat
+	Execute(userId user.UserId) ([]*chat.Chat, error)
 }

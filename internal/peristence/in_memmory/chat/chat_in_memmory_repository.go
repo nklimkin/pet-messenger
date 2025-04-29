@@ -24,7 +24,7 @@ func (rep *ChatInMemmoryRepository) GetById(id chat.ChatId) (*chat.Chat, error) 
 }
 
 func (rep *ChatInMemmoryRepository) GetByUserId(userId user.UserId) ([]*chat.Chat, error) {
-	matchChats []*chat.Chat := make(*[]chat.Chat)
+	matchChats := make([]*chat.Chat, 0)
 	for _, item := range rep.storage {
 		if item.FirstUser == userId || item.SecondUser == userId {
 			matchChats = append(matchChats, item)
@@ -37,6 +37,6 @@ func (rep *ChatInMemmoryRepository) GetByUserId(userId user.UserId) ([]*chat.Cha
 }
 
 func (rep *ChatInMemmoryRepository) Save(chat chat.Chat) (*chat.Chat, error) {
-	rep.storage[chat.Id] = chat
-	return &chat
+	rep.storage[chat.Id] = &chat
+	return &chat, nil
 }
