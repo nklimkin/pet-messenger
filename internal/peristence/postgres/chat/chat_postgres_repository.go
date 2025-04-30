@@ -51,7 +51,7 @@ func NewPostgresRepository(datasource config.Datasource) (*ChatPostgresRepositor
 func (rep *ChatPostgresRepository) GetById(id chat.ChatId) (*chat.Chat, error) {
 	stmt, err := rep.db.Prepare("SELECT * FROM chats WHERE id = $1")
 	if err != nil {
-		return nil, fmt.Errorf("can't build prepate statement to get chat by id, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to get chat by id, error: %w", err)
 	}
 
 	var persistedId int64
@@ -70,7 +70,7 @@ func (rep *ChatPostgresRepository) GetById(id chat.ChatId) (*chat.Chat, error) {
 func (rep *ChatPostgresRepository) GetByUserId(userId user.UserId) ([]*chat.Chat, error) {
 	stmt, err := rep.db.Prepare("SELECT * FROM chats WHERE first_user_id = $1 OR second_user_id = $1")
 	if err != nil {
-		return nil, fmt.Errorf("can't build preprate statment to get chats by user id, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statment to get chats by user id, error: %w", err)
 	}
 
 	rows, err := stmt.Query(userId.Value)
@@ -112,12 +112,12 @@ func buildChat(
 func (rep *ChatPostgresRepository) Save(chat chat.Chat) (*chat.Chat, error) {
 	stmt, err := rep.db.Prepare("INSERT INTO chats(id, first_user_id, second_user_id, created) VALUES($1, $2, $3, $4)")
 	if err != nil {
-		return nil, fmt.Errorf("can't build prepate statement to save chat, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to save chat, error: %w", err)
 	}
 
 	_, err = stmt.Exec(chat.Id.Value, chat.FirstUser.Value, chat.SecondUser.Value, chat.Created)
 	if err != nil {
-		return nil, fmt.Errorf("can;t save chat with id = [%d], error: %w", chat.Id.Value, err)
+		return nil, fmt.Errorf("can't save chat with id = [%d], error: %w", chat.Id.Value, err)
 	}
 	return &chat, nil
 }

@@ -53,7 +53,7 @@ func NewPostgresRepository(datasource config.Datasource) (*MessagePostgresReposi
 func (rep *MessagePostgresRepository) GetByMessageId(id message.MessageId) (*message.ChatMessage, error) {
 	stmt, err := rep.db.Prepare("SELECT * FROM messages WHERE id = $1")
 	if err != nil {
-		return nil, fmt.Errorf("can't prepate statement to get message with id = [%d], error: %w", id.Value, err)
+		return nil, fmt.Errorf("can't build prepare statement to get message with id = [%d], error: %w", id.Value, err)
 	}
 
 	row := stmt.QueryRow(id.Value)
@@ -64,7 +64,7 @@ func (rep *MessagePostgresRepository) GetByMessageId(id message.MessageId) (*mes
 func (rep *MessagePostgresRepository) GetByChatId(chatId chat.ChatId) ([]*message.ChatMessage, error) {
 	stmt, err := rep.db.Prepare("SELECT * FROM messages WHERE chat_id = $1 ORDER BY id")
 	if err != nil {
-		return nil, fmt.Errorf("can't prepate statement to get chat by id, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to get chat by id, error: %w", err)
 	}
 
 	rows, err := stmt.Query(chatId.Value)
@@ -146,7 +146,7 @@ func buildChatMessage(
 func (rep *MessagePostgresRepository) Save(message message.ChatMessage) (*message.ChatMessage, error) {
 	stmt, err := rep.db.Prepare("INSERT INTO messages(id, chat_id, status, payload, created) VALUES ($1, $2, $3, $4, $5)")
 	if err != nil {
-		return nil, fmt.Errorf("can't prepare statement to save message, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to save message, error: %w", err)
 	}
 
 	_, err = stmt.Exec(message.Id.Value, message.ChatId.Value, message.Status.String(), message.Payload.Value, message.Created)

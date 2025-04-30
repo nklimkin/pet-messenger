@@ -37,7 +37,7 @@ func New(datasource config.Datasource) (*UserPostgresRepository, error) {
 		`)
 
 	if err != nil {
-		return nil, fmt.Errorf("can't build prepate statement to create table - messanger_user, error: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to create table - messanger_user, error: %w", err)
 	}
 
 	_, err = stmt.Exec()
@@ -51,7 +51,7 @@ func New(datasource config.Datasource) (*UserPostgresRepository, error) {
 func (rep *UserPostgresRepository) GetById(id user.UserId) (*user.User, error) {
 	stmt, err := rep.db.Prepare("SELECT * FROM messanger_user WHERE id = $1")
 	if err != nil {
-		return nil, fmt.Errorf("can't prepare statement to get user by id: %w", err)
+		return nil, fmt.Errorf("can't build prepare statement to get user by id: %w", err)
 	}
 
 	var persistedId int64
@@ -74,7 +74,7 @@ func (rep *UserPostgresRepository) GetById(id user.UserId) (*user.User, error) {
 func (rep *UserPostgresRepository) Save(user user.User) (*user.User, error) {
 	stmt, err := rep.db.Prepare("INSERT INTO messanger_user(id, login, created) VALUES($1, $2, $3)")
 	if err != nil {
-		return nil ,fmt.Errorf("can't prepare query to save user: %w", err)
+		return nil ,fmt.Errorf("can't build prepare query to save user: %w", err)
 	}
 	_, err = stmt.Exec(user.Id.Value, user.Login, time.Now())
 	if err != nil {

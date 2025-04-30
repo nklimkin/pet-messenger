@@ -15,11 +15,7 @@ func NewCreateChat(chatPersistence ChatPersistence) *CreateChatUseCase {
 	return &CreateChatUseCase{chatPerisistence: chatPersistence}
 }
 
-func (uc *CreateChatUseCase) Execute(id chat.ChatId, fistUserId user.UserId, secondUserId user.UserId) {
-	if uc.chatPerisistence == nil {
-		return
-	}
-
+func (uc *CreateChatUseCase) Execute(id chat.ChatId, fistUserId user.UserId, secondUserId user.UserId) (*chat.Chat, error) {
 	newChat := chat.Chat{
 		Id:         id,
 		FirstUser:  fistUserId,
@@ -27,5 +23,5 @@ func (uc *CreateChatUseCase) Execute(id chat.ChatId, fistUserId user.UserId, sec
 		Created:    time.Now(),
 	}
 
-	uc.chatPerisistence.Save(newChat)
+	return uc.chatPerisistence.Save(newChat)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 	"ru.nklimkin/petmsngr/internal/domain/chat"
 	"ru.nklimkin/petmsngr/internal/domain/user"
 	chat_usecase "ru.nklimkin/petmsngr/internal/usecase/chat"
@@ -14,9 +15,9 @@ import (
 )
 
 type NewChatRequest struct {
-	Id int64 `json:"id"`
-	FirstUserId int64 `json:"first_user_id"`
-	SecondUserId int64 `json:"second_user_id"`
+	Id int64 `json:"id" validate:"required"`
+	FirstUserId int64 `json:"first_user_id" validate:"required"`
+	SecondUserId int64 `json:"second_user_id" validate:"required"`
 }
 
 func NewCreateChatHandler(log *slog.Logger, createChat chat_usecase.CreateChat) http.HandlerFunc {
@@ -27,12 +28,21 @@ func NewCreateChatHandler(log *slog.Logger, createChat chat_usecase.CreateChat) 
 			response.JSON(r, w, http.StatusBadRequest, response.Error("invalid request body"))
 			return
 		}
-		
-		createChat.Execute(
+
+		if err := validator.New().Struct(request); err != nil {
+			response.JSON(r, w, http.StatusBadRequest, response.Error(err.Error()))
+			return
+		}		
+		_, err = createChat.Execute(
 			chat.ChatId{Value: request.Id},
 			user.UserId{Value: request.FirstUserId},
 			user.UserId{Value: request.SecondUserId},
 		)
+		if err != nil {
+			log.Error("error while create chat", slog.Any("error", err))
+			response.JSON(r, w, http.StatusInternalServerError, response.Error(err.Error()))
+			return
+		}
 
 		render.JSON(w, r, response.Ok())
 	}
@@ -48,7 +58,7 @@ func NewGetUserChatsHandler(log *slog.Logger, getUserChats chat_usecase.GetUserC
 		}
 		chats, err := getUserChats.Execute(user.UserId{Value: userId})
 		if err != nil {
-			log.Error("error while get user chats, error: %w", err)
+			log.Error("error while get user chats", slog.Any("error", err))
 			response.JSON(r, w, http.StatusInternalServerError, response.Error(err.Error()))
 			return
 		}

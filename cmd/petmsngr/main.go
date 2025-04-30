@@ -32,6 +32,11 @@ const (
 	envProd  = "prod"
 )
 
+const (
+	POSTGRES = "postgres"
+	IN_MEMMORY = "in_memmory"
+)
+
 func main() {
 
 	cfg := config.Load()
@@ -97,13 +102,13 @@ func setupMessageHandlers(router *chi.Mux) {
 func buildChatAccessor(datasource config.Datasource) chat_usecase.ChatAccessor {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := chat_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
 			panic("Can't build chat postgres repository")
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return chat_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")
@@ -112,13 +117,13 @@ func buildChatAccessor(datasource config.Datasource) chat_usecase.ChatAccessor {
 func buildChatPersistence(datasource config.Datasource) chat_usecase.ChatPersistence {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := chat_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
 			panic("Can't build chat postgres repository")
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return chat_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")
@@ -127,13 +132,13 @@ func buildChatPersistence(datasource config.Datasource) chat_usecase.ChatPersist
 func buildUserAccessor(datasource config.Datasource) user_usecase.UserAccessor {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := user_postgres_persistence.New(datasource)
 		if err != nil {
 			panic("Can't build user postgres repository")
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return user_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")
@@ -142,13 +147,13 @@ func buildUserAccessor(datasource config.Datasource) user_usecase.UserAccessor {
 func buildUserPersistence(datasource config.Datasource) user_usecase.UserPersistence {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := user_postgres_persistence.New(datasource)
 		if err != nil {
 			panic(err)
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return user_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")
@@ -157,13 +162,13 @@ func buildUserPersistence(datasource config.Datasource) user_usecase.UserPersist
 func buildMessageAccessor(datasource config.Datasource) message_usecase.ChatMessageAccessor {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := message_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
 			panic("Can't build message postgres repository")
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return message_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")
@@ -172,13 +177,13 @@ func buildMessageAccessor(datasource config.Datasource) message_usecase.ChatMess
 func buildMessagePersistence(datasource config.Datasource) message_usecase.ChatMessagePersistence {
 
 	switch datasource.Type {
-	case "postgres":
+	case POSTGRES:
 		rep, err := message_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
 			panic("Can't build message postgres repository")
 		}
 		return rep
-	case "in_memmory":
+	case IN_MEMMORY:
 		return message_in_memmory_persistence.New()
 	}
 	panic("Invalid datasource type")

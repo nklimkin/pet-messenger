@@ -6,5 +6,5 @@ import (
 )
 
 type CreateChat interface {
-	Execute(id chat.ChatId, firstUserId user.UserId, secondUserId user.UserId)
+	Execute(id chat.ChatId, firstUserId user.UserId, secondUserId user.UserId) (*chat.Chat, error)
 }

@@ -19,11 +19,11 @@ type NewMessageRequest struct {
 	Payload string
 }
 
-func HandleMessage(log *slog.Logger,) http.HandlerFunc {
+func HandleMessage(log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Error("can't upgrade connection to websocket, error: %w", err)
+			log.Error("can't upgrade connection to websocket", slog.Any("error", err))
 			return
 		}
 
@@ -31,14 +31,14 @@ func HandleMessage(log *slog.Logger,) http.HandlerFunc {
 
 			messageType, msg, err := conn.ReadMessage()
 			if err != nil {
-				log.Error("can't read message, error: %w", err)
+				log.Error("can't read message", slog.Any("error", err))
 			}
 
 			log.Debug("Handle message: %s with type %s", msg, messageType)
 
 			var newMessage NewMessageRequest
 			if err := json.Unmarshal(msg, &newMessage); err != nil {
-				log.Error("can't read message, error: %w", err)
+				log.Error("can't read message", slog.Any("error", err))
 				continue
 			}
 
