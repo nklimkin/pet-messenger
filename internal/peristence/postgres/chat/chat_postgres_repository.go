@@ -31,8 +31,8 @@ func NewPostgresRepository(datasource config.Datasource) (*ChatPostgresRepositor
 	stmt, err := db.Prepare(`
 	CREATE TABLE IF NOT EXISTS chats (
 		id BIGINT PRIMARY KEY,
-		first_user_id BIGINT,
-		second_user_id BIGINT,
+		first_user_id BIGINT REFERENCES messanger_user(id),
+		second_user_id BIGINT REFERENCES messanger_user(id),
 		created TIMESTAMP);
 	`)
 
@@ -43,6 +43,17 @@ func NewPostgresRepository(datasource config.Datasource) (*ChatPostgresRepositor
 	_, err = stmt.Exec()
 	if err != nil {
 		return nil, fmt.Errorf("can't create table - chats, error: %w", err)
+	}
+
+	stmt, err = db.Prepare(`CREATE SEQUENCE IF NOT EXISTS chat_id_seq START 1;`)
+
+	if err != nil {
+		return nil, fmt.Errorf("can't build statement to create sequence - chat_id_seq, error: %w", err)
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		return nil, fmt.Errorf("can't create sequence - chat_id_seq, error: %w", err)
 	}
 
 	return &ChatPostgresRepository{db}, nil
@@ -120,4 +131,20 @@ func (rep *ChatPostgresRepository) Save(chat chat.Chat) (*chat.Chat, error) {
 		return nil, fmt.Errorf("can't save chat with id = [%d], error: %w", chat.Id.Value, err)
 	}
 	return &chat, nil
+}
+
+func (rep *ChatPostgresRepository) Generate() (*chat.ChatId, error) {
+	stmt, err := rep.db.Prepare("SELECT nextval('chat_id_seq')")
+	if err != nil {
+		return nil, fmt.Errorf("can't build prepare statement to get chat id, error: %w", err)
+	}
+
+	var id int64
+
+	err = stmt.QueryRow().Scan(&id)
+	if err != nil {
+		return nil, fmt.Errorf("can't get new chat id, error: %w", err)
+	}
+
+	return &chat.ChatId{Value: id}, nil
 }

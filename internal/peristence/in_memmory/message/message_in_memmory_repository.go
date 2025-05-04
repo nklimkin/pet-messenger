@@ -2,6 +2,7 @@ package message
 
 import (
 	"fmt"
+	"sort"
 
 	"ru.nklimkin/petmsngr/internal/domain/chat"
 	"ru.nklimkin/petmsngr/internal/domain/message"
@@ -39,4 +40,21 @@ func (rep *MessageInMemmoryRepository) GetByChatId(chatId chat.ChatId) ([]*messa
 func (rep *MessageInMemmoryRepository) Save(message message.ChatMessage) (*message.ChatMessage, error) {
 	rep.storage[message.Id] = &message
 	return &message, nil
+}
+
+func (rep *MessageInMemmoryRepository) Generate() (*message.MessageId, error) {
+	ids := make([]message.MessageId, 0, len(rep.storage))
+
+	for id := range rep.storage {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		return ids[j].Value < ids[i].Value
+	})
+
+	if len(ids) == 0 {
+		return &message.MessageId{Value: 1}, nil
+	} else {
+		return &ids[0], nil
+	}
 }

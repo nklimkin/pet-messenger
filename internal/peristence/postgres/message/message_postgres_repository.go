@@ -47,6 +47,17 @@ func NewPostgresRepository(datasource config.Datasource) (*MessagePostgresReposi
 		return nil, fmt.Errorf("can't create table - messages, error: %w", err)
 	}
 
+	stmt, err = db.Prepare(`CREATE SEQUENCE IF NOT EXISTS messages_id_seq START 1;`)
+
+	if err != nil {
+		return nil, fmt.Errorf("can't build prepare statement to create sequence - messages_id_seq, error: %w", err)
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		return nil, fmt.Errorf("can't create sequence - messages_id_seq, error: %w", err)
+	}
+
 	return &MessagePostgresRepository{db}, nil
 }
 
@@ -154,4 +165,20 @@ func (rep *MessagePostgresRepository) Save(message message.ChatMessage) (*messag
 		return nil, fmt.Errorf("can't save message with id = [%d], error: %w", message.Id.Value, err)
 	}
 	return &message, nil
+}
+
+func (rep *MessagePostgresRepository) Generate() (*message.MessageId, error) {
+	stmt, err := rep.db.Prepare("SELECT nextval('messages_id_seq')")
+	if err != nil {
+		return nil, fmt.Errorf("can't build prepare statement to get new message id, error: %w", err)
+	}
+
+	var id int64
+
+	err = stmt.QueryRow().Scan(&id)
+	if err != nil {
+		return nil, fmt.Errorf("can't get new message id, error: %w", err)
+	}
+
+	return &message.MessageId{Value: id}, nil
 }

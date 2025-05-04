@@ -11,7 +11,6 @@ import (
 )
 
 type SignUpRequest struct {
-	Id    int64  `json:"id" validate:"required"`
 	Login string `json:"login" validate:"required"`
 }
 
@@ -30,7 +29,7 @@ func NewSignUp(log *slog.Logger, signUp user.UserSignUp) http.HandlerFunc {
 			return
 		}
 
-		_, err = signUp.Execute(signUpRequest.Id, signUpRequest.Login)
+		_, err = signUp.Execute(signUpRequest.Login)
 		if err != nil {
 			log.Error("Failed to sigup user", slog.Any("error", err))
 			response.JSON(r, w, http.StatusInternalServerError, response.Error(err.Error()))

@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"ru.nklimkin/petmsngr/internal/config"
+	"ru.nklimkin/petmsngr/internal/domain/chat"
 	user_in_memmory_persistence "ru.nklimkin/petmsngr/internal/peristence/in_memmory/user"
 	user_postgres_persistence "ru.nklimkin/petmsngr/internal/peristence/postgres/user"
 	"ru.nklimkin/petmsngr/internal/router/user"
@@ -16,9 +17,10 @@ import (
 
 	chat_in_memmory_persistence "ru.nklimkin/petmsngr/internal/peristence/in_memmory/chat"
 	chat_postgres_persistence "ru.nklimkin/petmsngr/internal/peristence/postgres/chat"
-	"ru.nklimkin/petmsngr/internal/router/chat"
+	chat_router "ru.nklimkin/petmsngr/internal/router/chat"
 	chat_usecase "ru.nklimkin/petmsngr/internal/usecase/chat"
 
+	message_router "ru.nklimkin/petmsngr/internal/router/message"
 	message_in_memmory_persistence "ru.nklimkin/petmsngr/internal/peristence/in_memmory/message"
 	message_postgres_persistence "ru.nklimkin/petmsngr/internal/peristence/postgres/message"
 
@@ -33,7 +35,7 @@ const (
 )
 
 const (
-	POSTGRES = "postgres"
+	POSTGRES   = "postgres"
 	IN_MEMMORY = "in_memmory"
 )
 
@@ -51,9 +53,12 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	setupUserHandlers(log, cfg, router)
-	setupChatHandlers(log, cfg, router)
-	setupMessageHandlers(router)
+	userRequestComponents := buildUserRequestsComponents(cfg.Datasource)
+	chatRequestComponents := buildChatRequestsComponents(cfg.Datasource)
+
+	setupUserHandlers(log, router, userRequestComponents)
+	setupChatHandlers(log, router, chatRequestComponents, userRequestComponents)
+	setupMessageHandlers(log, router)
 
 	if err := http.ListenAndServe(cfg.Address, router); err != nil {
 		log.Error("Error while start up server")
@@ -76,115 +81,102 @@ func setupLogger(env string) *slog.Logger {
 	return log
 }
 
-func setupUserHandlers(log *slog.Logger, cfg *config.Config, router *chi.Mux) {
-	// userAccessor := buildUserAccessor(cfg.Datasource)
-	userPersistence := buildUserPersistence(cfg.Datasource)
-	userSignUpUsecase := user_usecase.New(userPersistence)
+func setupUserHandlers(
+	log *slog.Logger,
+	router *chi.Mux,
+	userRequestComponents HandleUserRequestComponents,
+) {
+	userSignUpUsecase := user_usecase.New(userRequestComponents.persistence, userRequestComponents.idGenerator)
 
 	router.Post("/api/v1/user/sign-up", user.NewSignUp(log, userSignUpUsecase))
 }
 
-func setupChatHandlers(log *slog.Logger, cfg *config.Config, router *chi.Mux) {
-	chatAccessor := buildChatAccessor(cfg.Datasource)
-	chatPersistence := buildChatPersistence(cfg.Datasource)
+func setupChatHandlers(
+	log *slog.Logger,
+	router *chi.Mux,
+	chatRequestComponents HandleChatRequestComponents,
+	userRequestComponents HandleUserRequestComponents,
+) {
 
-	getChatUsercase := chat_usecase.NewGetUserChats(chatAccessor)
-	createChatUsecase := chat_usecase.NewCreateChat(chatPersistence)
+	getChatUsercase := chat_usecase.NewGetUserChats(chatRequestComponents.accessor)
+	createChatUsecase := chat_usecase.NewCreateChat(
+		chatRequestComponents.persistence,
+		chatRequestComponents.idGenerator,
+		userRequestComponents.accessor)
 
-	router.Post("/api/v1/chat", chat.NewCreateChatHandler(log, createChatUsecase))
-	router.Get("/api/v1/chat/user/{user_id}", chat.NewGetUserChatsHandler(log, getChatUsercase))
+	router.Post("/api/v1/chat", chat_router.NewCreateChatHandler(log, createChatUsecase))
+	router.Get("/api/v1/chat/user/{user_id}", chat_router.NewGetUserChatsHandler(log, getChatUsercase))
 }
 
-func setupMessageHandlers(router *chi.Mux) {
-	// router.HandleFunc("/ws", message.HandleMessage())
-}
-
-func buildChatAccessor(datasource config.Datasource) chat_usecase.ChatAccessor {
-
-	switch datasource.Type {
-	case POSTGRES:
-		rep, err := chat_postgres_persistence.NewPostgresRepository(datasource)
-		if err != nil {
-			panic("Can't build chat postgres repository")
-		}
-		return rep
-	case IN_MEMMORY:
-		return chat_in_memmory_persistence.New()
+func setupMessageHandlers(log *slog.Logger, router *chi.Mux) {
+	clientStorage := message_router.ClientStorage{
+		Register: make(chan *message_router.Client),
+		Clients: make(map[chat.ChatId][]*message_router.Client, 0),
+		Broadcast: make(chan message_router.NewMessageRequest),
 	}
-	panic("Invalid datasource type")
+	go clientStorage.Init()
+	router.HandleFunc("/ws", message_router.HandleMessage(log, &clientStorage))
 }
 
-func buildChatPersistence(datasource config.Datasource) chat_usecase.ChatPersistence {
-
-	switch datasource.Type {
-	case POSTGRES:
-		rep, err := chat_postgres_persistence.NewPostgresRepository(datasource)
-		if err != nil {
-			panic("Can't build chat postgres repository")
-		}
-		return rep
-	case IN_MEMMORY:
-		return chat_in_memmory_persistence.New()
-	}
-	panic("Invalid datasource type")
+type HandleUserRequestComponents struct {
+	accessor    user_usecase.UserAccessor
+	persistence user_usecase.UserPersistence
+	idGenerator user_usecase.UserIdGenerator
 }
 
-func buildUserAccessor(datasource config.Datasource) user_usecase.UserAccessor {
-
-	switch datasource.Type {
-	case POSTGRES:
-		rep, err := user_postgres_persistence.New(datasource)
-		if err != nil {
-			panic("Can't build user postgres repository")
-		}
-		return rep
-	case IN_MEMMORY:
-		return user_in_memmory_persistence.New()
-	}
-	panic("Invalid datasource type")
+type HandleMessageRequestComponents struct {
+	accessor    message_usecase.ChatMessageAccessor
+	persistence message_usecase.ChatMessagePersistence
+	idGenerator message_usecase.MessageIdGenerator
 }
 
-func buildUserPersistence(datasource config.Datasource) user_usecase.UserPersistence {
+type HandleChatRequestComponents struct {
+	accessor    chat_usecase.ChatAccessor
+	persistence chat_usecase.ChatPersistence
+	idGenerator chat_usecase.ChatIdGenerator
+}
 
+func buildUserRequestsComponents(datasource config.Datasource) HandleUserRequestComponents {
 	switch datasource.Type {
 	case POSTGRES:
 		rep, err := user_postgres_persistence.New(datasource)
 		if err != nil {
 			panic(err)
 		}
-		return rep
+		return HandleUserRequestComponents{rep, rep, rep}
 	case IN_MEMMORY:
-		return user_in_memmory_persistence.New()
+		rep := user_in_memmory_persistence.New()
+		return HandleUserRequestComponents{rep, rep, rep}
 	}
 	panic("Invalid datasource type")
 }
 
-func buildMessageAccessor(datasource config.Datasource) message_usecase.ChatMessageAccessor {
-
+func buildChatRequestsComponents(datasource config.Datasource) HandleChatRequestComponents {
 	switch datasource.Type {
 	case POSTGRES:
-		rep, err := message_postgres_persistence.NewPostgresRepository(datasource)
+		rep, err := chat_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
-			panic("Can't build message postgres repository")
+			panic(err)
 		}
-		return rep
+		return HandleChatRequestComponents{rep, rep, rep}
 	case IN_MEMMORY:
-		return message_in_memmory_persistence.New()
+		rep := chat_in_memmory_persistence.New()
+		return HandleChatRequestComponents{rep, rep, rep}
 	}
 	panic("Invalid datasource type")
 }
 
-func buildMessagePersistence(datasource config.Datasource) message_usecase.ChatMessagePersistence {
-
+func buildMessageRequestsComponents(datasource config.Datasource) HandleMessageRequestComponents {
 	switch datasource.Type {
 	case POSTGRES:
 		rep, err := message_postgres_persistence.NewPostgresRepository(datasource)
 		if err != nil {
-			panic("Can't build message postgres repository")
+			panic(err)
 		}
-		return rep
+		return HandleMessageRequestComponents{rep, rep, rep}
 	case IN_MEMMORY:
-		return message_in_memmory_persistence.New()
+		rep := message_in_memmory_persistence.New()
+		return HandleMessageRequestComponents{rep, rep, rep}
 	}
 	panic("Invalid datasource type")
 }

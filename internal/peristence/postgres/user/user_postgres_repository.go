@@ -34,7 +34,7 @@ func New(datasource config.Datasource) (*UserPostgresRepository, error) {
 		id BIGINT PRIMARY KEY,
 		login VARCHAR(255),
 		created TIMESTAMP);
-		`)
+	`)
 
 	if err != nil {
 		return nil, fmt.Errorf("can't build prepare statement to create table - messanger_user, error: %w", err)
@@ -43,6 +43,17 @@ func New(datasource config.Datasource) (*UserPostgresRepository, error) {
 	_, err = stmt.Exec()
 	if err != nil {
 		return nil, fmt.Errorf("can't create table - messanger_user, error: %w", err)
+	}
+
+	stmt, err = db.Prepare(`CREATE SEQUENCE IF NOT EXISTS message_user_id_seq START 1;`)
+
+	if err != nil {
+		return nil, fmt.Errorf("can't build prepare statement to create sequence - message_user_id_seq, error: %w", err)
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		return nil, fmt.Errorf("can't create sequence - message_user_id_seq, error: %w", err)
 	}
 
 	return &UserPostgresRepository{db}, nil
@@ -74,11 +85,46 @@ func (rep *UserPostgresRepository) GetById(id user.UserId) (*user.User, error) {
 func (rep *UserPostgresRepository) Save(user user.User) (*user.User, error) {
 	stmt, err := rep.db.Prepare("INSERT INTO messanger_user(id, login, created) VALUES($1, $2, $3)")
 	if err != nil {
-		return nil ,fmt.Errorf("can't build prepare query to save user: %w", err)
+		return nil, fmt.Errorf("can't build prepare query to save user: %w", err)
 	}
 	_, err = stmt.Exec(user.Id.Value, user.Login, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("can't save user: %w", err)
 	}
 	return &user, nil
+}
+
+func (rep *UserPostgresRepository) Generate() (*user.UserId, error) {
+	stmt, err := rep.db.Prepare("SELECT nextval('message_user_id_seq')")
+	if err != nil {
+		return nil, fmt.Errorf("can't builde prepate statement to get new user id, error: %w", err)
+	}
+
+	var id int64
+
+	err = stmt.QueryRow().Scan(&id)
+	if err != nil {
+		return nil, fmt.Errorf("can't get new user id, error: %w", err)
+	}
+
+	return &user.UserId{Value: id}, nil
+}
+
+func (rep *UserPostgresRepository) Exists(id user.UserId) (bool, error) {
+	stmt, err := rep.db.Prepare("SELECT id FROM messanger_user WHERE id = $1")
+	if err != nil {
+		return false, fmt.Errorf("can't build prepate statement to check user existence, error: %w", err)
+	}
+
+	var persistedId int64
+
+	err = stmt.QueryRow(id.Value).Scan(&persistedId)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("can't check user existence, error: %w", err)
+	}
+
+	return true, nil
 }

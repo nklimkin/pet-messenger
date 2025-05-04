@@ -3,12 +3,14 @@ package message
 import "ru.nklimkin/petmsngr/internal/domain/message"
 
 type HandleChatMessageUseCase struct {
-	chatAccessor ChatMessageAccessor
-	chatPersistence ChatMessagePersistence
+	messageAccessor ChatMessageAccessor
+	messagePersistence ChatMessagePersistence
 }
 
-func New(chatAccessor ChatMessageAccessor, chatPersistence ChatMessagePersistence) *HandleChatMessageUseCase {
-	return &HandleChatMessageUseCase{chatAccessor: chatAccessor, chatPersistence: chatPersistence}
+func New(messageAccessor ChatMessageAccessor, messagePersistence ChatMessagePersistence) *HandleChatMessageUseCase {
+	return &HandleChatMessageUseCase{
+		messageAccessor: messageAccessor, 
+		messagePersistence: messagePersistence}
 }
 
 

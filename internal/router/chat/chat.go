@@ -8,14 +8,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
-	"ru.nklimkin/petmsngr/internal/domain/chat"
 	"ru.nklimkin/petmsngr/internal/domain/user"
 	chat_usecase "ru.nklimkin/petmsngr/internal/usecase/chat"
 	"ru.nklimkin/petmsngr/pkg/api/response"
 )
 
 type NewChatRequest struct {
-	Id int64 `json:"id" validate:"required"`
 	FirstUserId int64 `json:"first_user_id" validate:"required"`
 	SecondUserId int64 `json:"second_user_id" validate:"required"`
 }
@@ -34,7 +32,6 @@ func NewCreateChatHandler(log *slog.Logger, createChat chat_usecase.CreateChat) 
 			return
 		}		
 		_, err = createChat.Execute(
-			chat.ChatId{Value: request.Id},
 			user.UserId{Value: request.FirstUserId},
 			user.UserId{Value: request.SecondUserId},
 		)

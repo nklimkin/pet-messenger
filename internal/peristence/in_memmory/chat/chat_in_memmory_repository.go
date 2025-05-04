@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"sort"
 
 	"ru.nklimkin/petmsngr/internal/domain/chat"
 	"ru.nklimkin/petmsngr/internal/domain/user"
@@ -39,4 +40,21 @@ func (rep *ChatInMemmoryRepository) GetByUserId(userId user.UserId) ([]*chat.Cha
 func (rep *ChatInMemmoryRepository) Save(chat chat.Chat) (*chat.Chat, error) {
 	rep.storage[chat.Id] = &chat
 	return &chat, nil
+}
+
+func (rep *ChatInMemmoryRepository) Generate() (*chat.ChatId, error) {
+	ids := make([]chat.ChatId, 0, len(rep.storage))
+
+	for id := range rep.storage {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		return ids[j].Value < ids[i].Value
+	})
+
+	if len(ids) == 0 {
+		return &chat.ChatId{Value: 1}, nil
+	} else {
+		return &ids[0], nil
+	}
 }
