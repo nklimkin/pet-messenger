@@ -20,11 +20,9 @@ import (
 	chat_router "ru.nklimkin/petmsngr/internal/router/chat"
 	chat_usecase "ru.nklimkin/petmsngr/internal/usecase/chat"
 
-	message_router "ru.nklimkin/petmsngr/internal/router/message"
 	message_in_memmory_persistence "ru.nklimkin/petmsngr/internal/peristence/in_memmory/message"
 	message_postgres_persistence "ru.nklimkin/petmsngr/internal/peristence/postgres/message"
-
-	// "ru.nklimkin/petmsngr/internal/router/message"
+	message_router "ru.nklimkin/petmsngr/internal/router/message"
 	message_usecase "ru.nklimkin/petmsngr/internal/usecase/message"
 )
 
@@ -110,8 +108,8 @@ func setupChatHandlers(
 
 func setupMessageHandlers(log *slog.Logger, router *chi.Mux) {
 	clientStorage := message_router.ClientStorage{
-		Register: make(chan *message_router.Client),
-		Clients: make(map[chat.ChatId][]*message_router.Client, 0),
+		Register:  make(chan *message_router.Client),
+		Clients:   make(map[chat.ChatId][]*message_router.Client, 0),
 		Broadcast: make(chan message_router.NewMessageRequest),
 	}
 	go clientStorage.Init()
